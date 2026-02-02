@@ -1,0 +1,11 @@
+{
+  "device": {
+    "id": "DEVICE_001",
+    "name": "工控机 #1",
+    "username": "device_user_01"
+  },
+  "modbus": {
+    "host": "192.168.1.100",
+    "port": 502
+  }
+}

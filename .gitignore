@@ -1,0 +1,50 @@
+# 构建产物
+build/
+out/
+deploy/
+*.exe
+*.app
+*.dmg
+
+# Qt 相关
+*.pro.user
+*.qrc.depends
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+web_resources.qrc
+
+# 前端
+src/web/node_modules/
+src/web/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log*
+pocoPress/
+
+# 环境配置
+.env
+.env.local
+
+# 文档和配置
+docs/
+CLAUDE.md
+
+# Claude 和缓存
+.cache/
+.claude/
+
+# 设计文件
+*.pen

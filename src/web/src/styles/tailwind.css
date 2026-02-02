@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+:root {
+  /* 背景色 */
+  --bg-page: #F8F9FC;
+  --bg-card: #FFFFFF;
+  --bg-glass: #FFFFFF99;
+  --bg-surface: #F0F2F8;
+  --bg-hover: #E8EBF4;
+
+  /* 文字色 */
+  --text-primary: #1A1D26;
+  --text-secondary: #5C6370;
+  --text-tertiary: #9CA3AF;
+
+  /* 边框色 */
+  --border-subtle: #E5E7EB;
+  --border-divider: #D1D5DB;
+
+  /* 功能色 - 绿色 */
+  --green-primary: #10B981;
+  --green-light: #D1FAE5;
+
+  /* 功能色 - 红色 */
+  --red-error: #EF4444;
+  --red-light: #FEE2E2;
+
+  /* 功能色 - 蓝色 */
+  --blue-link: #3B82F6;
+  --blue-light: #DBEAFE;
+
+  /* 功能色 - 琥珀色 */
+  --amber-warning: #F59E0B;
+  --amber-light: #FEF3C7;
+
+  /* 功能色 - 紫色/粉色 */
+  --purple-accent: #8B5CF6;
+  --purple-light: #EDE9FE;
+  --pink-accent: #EC4899;
+
+  /* 渐变色 */
+  --gradient-start: #E0E7FF;
+  --gradient-mid: #FCE7F3;
+  --gradient-end: #DBEAFE;
+
+  /* ========================================
+   * 响应式尺寸变量（适配 10 英寸工控机）
+   * 使用 clamp() 实现流式缩放
+   * 基准分辨率：1024x600
+   * ======================================== */
+
+  /* 模态框 - 内边距 (1024px 时约 15px) */
+  --modal-padding: clamp(10px, 1.5vw, 20px);
+  /* 模态框 - 标题间距 (1024px 时约 12px) */
+  --modal-header-gap: clamp(8px, 1.2vw, 16px);
+  /* 模态框 - 标题字号 (1024px 时约 14px) */
+  --modal-title-size: clamp(12px, 1.4vw, 16px);
+  /* 模态框 - 关闭按钮尺寸（最小 44px 保证触屏） */
+  --modal-close-size: clamp(44px, 4.5vw, 48px);
+  /* 模态框 - 关闭图标尺寸 (1024px 时约 18px) */
+  --modal-icon-size: clamp(16px, 1.8vw, 22px);
+  /* 模态框 - 选项内边距 X (1024px 时约 12px) */
+  --modal-option-px: clamp(8px, 1.2vw, 16px);
+  /* 模态框 - 选项内边距 Y (1024px 时约 10px) */
+  --modal-option-py: clamp(6px, 1vw, 12px);
+  /* 模态框 - 选项字号 (1024px 时约 13px) */
+  --modal-option-size: clamp(12px, 1.3vw, 15px);
+  /* 模态框 - 网格间距 (1024px 时约 8px) */
+  --modal-grid-gap: clamp(4px, 0.8vw, 10px);
+}
+
+@layer base {
+  html, body {
+    height: 100%;
+  }
+
+  /* 字体定义 */
+  .font-primary {
+    font-family: "Inter", sans-serif;
+  }
+
+  .font-mono {
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  /* 触屏适配基础类 */
+  .touch-target {
+    @apply min-w-11 min-h-11;
+  }
+
+  .touch-button {
+    @apply min-w-12 min-h-12 text-base;
+  }
+
+  .touch-interactive {
+    @apply active:opacity-80 active:scale-[0.98] transition-all duration-150;
+  }
+}
+
+/* 玻璃态效果 */
+.glass-effect {
+  @apply backdrop-blur-[20px];
+}
+
+/* 主按钮渐变 */
+.gradient-primary {
+  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+}
+
+/* 危险按钮渐变 */
+.gradient-destructive {
+  background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
+}
+
+/* 头像渐变 */
+.gradient-avatar {
+  background: linear-gradient(135deg, var(--purple-accent) 0%, var(--pink-accent) 100%);
+}

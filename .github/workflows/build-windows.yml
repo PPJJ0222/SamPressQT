@@ -1,0 +1,98 @@
+# Windows 构建工作流
+# @file build-windows.yml
+# @description 在创建 Release Tag 时自动构建 Windows exe 应用
+
+name: Build Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  QT_VERSION: '6.5.3'
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # 检出代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 安装 Qt
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          modules: qtwebengine qtwebchannel qtserialbus
+          cache: true
+
+      # 安装 Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: src/web/package-lock.json
+
+      # 安装前端依赖
+      - name: Install frontend dependencies
+        working-directory: src/web
+        run: npm ci
+
+      # 构建前端
+      - name: Build frontend
+        working-directory: src/web
+        run: npm run build:web
+
+      # 生成 Qt 资源文件
+      - name: Generate QRC file
+        shell: pwsh
+        run: ./build_web.ps1
+
+      # 配置 CMake
+      - name: Configure CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      # 构建项目
+      - name: Build
+        run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+      # 打包依赖
+      - name: Package with windeployqt
+        shell: pwsh
+        run: |
+          $deployDir = "deploy"
+          New-Item -ItemType Directory -Force -Path $deployDir
+          Copy-Item "build/Release/SamPressQT.exe" -Destination $deployDir
+          windeployqt --release --no-translations $deployDir/SamPressQT.exe
+
+      # 创建 ZIP 包
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          Compress-Archive -Path deploy/* -DestinationPath "SamPressQT-$version-windows.zip"
+
+      # 上传构建产物
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SamPressQT-windows
+          path: SamPressQT-*-windows.zip
+
+      # 发布到 Release
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SamPressQT-*-windows.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
