@@ -30,7 +30,7 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
-          modules: qtwebengine qtwebchannel qtserialbus
+          modules: qtwebengine qtwebchannel qtserialbus qtpositioning
           cache: true
 
       # 安装 Node.js
