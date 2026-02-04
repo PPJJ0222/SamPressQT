@@ -17,10 +17,10 @@ withDefaults(defineProps<Props>(), {
   logo: 'SamPress',
   activeNav: 'dashboard',
   navItems: () => [
-    { label: '仪表盘', key: 'dashboard' },
+    { label: '操作手册', key: 'manual' },
     { label: '设备', key: 'devices' },
-    { label: '数据分析', key: 'analytics' },
-    { label: '设置', key: 'settings' }
+    { label: '信号调试', key: 'analytics' },
+    { label: '日志', key: 'logs' }
   ]
 })
 

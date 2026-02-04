@@ -83,7 +83,7 @@ service.interceptors.request.use(
     return config
   },
   (error) => {
-    logger.error('请求错误:', error)
+    logger.error(`请求错误: ${error.message || error}`, { toast: false })
     return Promise.reject(error)
   }
 )
@@ -110,17 +110,17 @@ service.interceptors.response.use(
 
     if (code === 401) {
       removeToken()
-      logger.error('登录状态已过期')
-      // 显示提示信息
-      toast?.error('登录状态已过期，请重新登录', 5000)
+      logger.error(`登录状态已过期: ${msg}`, { toast: false })
+      // 显示提示信息，优先使用服务器返回的消息
+      toast?.error(msg, 5000)
       return Promise.reject(new Error(msg))
     } else if (code === 500) {
-      logger.error('服务器错误:', msg)
+      logger.error(`服务器错误: ${msg}`, { toast: false })
       // 显示错误信息，持续 15 秒（与原项目一致）
       toast?.error(msg, 15000)
       return Promise.reject(new Error(msg))
     } else if (code !== 200) {
-      logger.error('请求失败:', msg)
+      logger.error(`请求失败: ${msg}`, { toast: false })
       // 显示错误信息，持续 15 秒（与原项目一致）
       toast?.error(msg, 15000)
       return Promise.reject(new Error(msg))
@@ -137,7 +137,7 @@ service.interceptors.response.use(
     } else if (message.includes('Request failed with status code')) {
       message = '系统接口' + message.substring(message.length - 3) + '异常'
     }
-    logger.error('响应错误:', message)
+    logger.error(`响应错误: ${message}`, { toast: false })
     // 显示网络错误提示
     const toast = getToastStore()
     toast?.error(message, 5000)

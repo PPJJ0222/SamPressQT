@@ -222,6 +222,16 @@ void ModbusManager::onErrorOccurred(QModbusDevice::Error error)
     if (error != QModbusDevice::NoError) {
         m_lastError = m_modbusClient->errorString();
         emit errorOccurred(m_lastError);
+
+        // 连接相关错误时，确保状态正确更新为未连接
+        if (error == QModbusDevice::ConnectionError ||
+            error == QModbusDevice::TimeoutError ||
+            error == QModbusDevice::ProtocolError) {
+            // 如果当前不是已连接状态，发射 connectionChanged(false)
+            if (m_modbusClient->state() != QModbusDevice::ConnectedState) {
+                emit connectionChanged(false);
+            }
+        }
     }
 }
 

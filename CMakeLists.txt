@@ -55,25 +55,18 @@ set(HEADERS
 set(WEB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src/web)
 set(QRC_FILE ${CMAKE_SOURCE_DIR}/web_resources.qrc)
 
-# 收集 web 源文件作为依赖
-file(GLOB_RECURSE WEB_SOURCES
-    ${WEB_SOURCE_DIR}/src/*.ts
-    ${WEB_SOURCE_DIR}/src/*.tsx
-    ${WEB_SOURCE_DIR}/src/*.vue
-    ${WEB_SOURCE_DIR}/src/*.css
-    ${WEB_SOURCE_DIR}/*.html
-)
-
-# 使用 add_custom_command 生成 qrc 文件
-add_custom_command(
-    OUTPUT ${QRC_FILE}
+# 添加一个总是执行的目标，确保每次构建都重新生成前端资源
+# 解决 Vite hash 文件名导致的增量构建问题
+add_custom_target(build_web_resources
     COMMAND ${CMAKE_SOURCE_DIR}/build_web.sh
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    DEPENDS ${WEB_SOURCES}
     COMMENT "构建 Web 前端并生成资源文件..."
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${QRC_FILE})
+
+# 确保在编译主程序前完成前端构建
+add_dependencies(${PROJECT_NAME} build_web_resources)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Core

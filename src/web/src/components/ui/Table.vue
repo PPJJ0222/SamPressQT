@@ -1,9 +1,17 @@
 <script setup lang="ts">
-// 数据表格组件
+/**
+ * @file 数据表格组件
+ * @description 通用数据表格，支持固定宽度和自动填充列
+ * @module components/ui/Table
+ */
+
 interface Column {
   key: string
   label: string
+  /** 固定宽度（px） */
   width?: number
+  /** 是否自动填充剩余空间 */
+  flex?: boolean
   align?: 'left' | 'center' | 'right'
 }
 
@@ -29,7 +37,10 @@ const emit = defineEmits<{
       <div
         v-for="col in columns"
         :key="col.key"
-        :style="{ width: col.width ? `${col.width}px` : 'auto' }"
+        :style="{
+          width: col.width ? `${col.width}px` : (col.flex ? 'auto' : 'auto'),
+          flex: col.flex ? '1' : 'none'
+        }"
         :class="[
           'flex items-center h-full font-primary text-xs font-medium text-(--text-secondary)',
           col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : ''
@@ -49,7 +60,10 @@ const emit = defineEmits<{
       <div
         v-for="col in columns"
         :key="col.key"
-        :style="{ width: col.width ? `${col.width}px` : 'auto' }"
+        :style="{
+          width: col.width ? `${col.width}px` : (col.flex ? 'auto' : 'auto'),
+          flex: col.flex ? '1' : 'none'
+        }"
         :class="[
           'flex items-center h-full font-primary text-sm text-(--text-primary)',
           col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : ''

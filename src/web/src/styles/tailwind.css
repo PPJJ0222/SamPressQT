@@ -82,18 +82,32 @@
   .font-mono {
     font-family: "JetBrains Mono", monospace;
   }
+}
 
-  /* 触屏适配基础类 */
-  .touch-target {
-    @apply min-w-11 min-h-11;
-  }
+/* ========================================
+ * 触屏适配工具类（Tailwind v4 @utility 语法）
+ * 适配 10 英寸工控机，最小触控目标 44px
+ * ======================================== */
 
-  .touch-button {
-    @apply min-w-12 min-h-12 text-base;
-  }
+@utility touch-target {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
 
-  .touch-interactive {
-    @apply active:opacity-80 active:scale-[0.98] transition-all duration-150;
+@utility touch-button {
+  min-width: 3rem;
+  min-height: 3rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+@utility touch-interactive {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.98);
   }
 }
 

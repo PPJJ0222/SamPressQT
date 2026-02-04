@@ -41,6 +41,15 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
   /** 数据加载状态 */
   const loading = ref(false)
 
+  /** 各操作按钮的 loading 状态 */
+  const actionLoading = ref({
+    connect: false,   // 建立通信
+    start: false,     // 开始加工
+    complete: false,  // 完成加工
+    moveIn: false,    // 移入
+    moveOut: false    // 移出
+  })
+
   /** Modbus 压机作业列表（从后端获取） */
   const modbusPressJobList = ref<ModbusPressJob[]>([])
 
@@ -74,6 +83,7 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
 
   /** 建立通信 */
   async function establishConnection() {
+    actionLoading.value.connect = true
     operationStatus.value = DeviceOperationStatus.CONNECTING
     try {
       // 初始化 PLC 桥接
@@ -82,7 +92,9 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
       // 下发 MES 通信状态信号
       const result = await signalsStore.sendMesCommunicationStatus()
       if (!result.success) {
-        logger.warn('MES 通信状态信号下发失败', { message: result.message })
+        operationStatus.value = DeviceOperationStatus.ERROR
+        logger.error('MES 通信状态信号下发失败', { message: result.message })
+        return
       }
 
       operationStatus.value = DeviceOperationStatus.CONNECTED
@@ -90,6 +102,8 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
     } catch (error) {
       operationStatus.value = DeviceOperationStatus.ERROR
       logger.error('PLC 通信建立失败', error)
+    } finally {
+      actionLoading.value.connect = false
     }
   }
 
@@ -100,24 +114,44 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
 
   /** 开始加工（预留接口，待业务流程确定后实现） */
   async function startProcessing() {
-    operationStatus.value = DeviceOperationStatus.PROCESSING
-    logger.info('开始加工')
+    actionLoading.value.start = true
+    try {
+      operationStatus.value = DeviceOperationStatus.PROCESSING
+      logger.info('开始加工')
+    } finally {
+      actionLoading.value.start = false
+    }
   }
 
   /** 完成加工（预留接口，待业务流程确定后实现） */
   async function completeProcessing() {
-    operationStatus.value = DeviceOperationStatus.COMPLETED
-    logger.info('完成加工')
+    actionLoading.value.complete = true
+    try {
+      operationStatus.value = DeviceOperationStatus.COMPLETED
+      logger.info('完成加工')
+    } finally {
+      actionLoading.value.complete = false
+    }
   }
 
   /** 移入操作（预留接口，待业务流程确定后实现） */
   async function moveIn() {
-    logger.info('执行移入操作')
+    actionLoading.value.moveIn = true
+    try {
+      logger.info('执行移入操作')
+    } finally {
+      actionLoading.value.moveIn = false
+    }
   }
 
   /** 移出操作（预留接口，待业务流程确定后实现） */
   async function moveOut() {
-    logger.info('执行移出操作')
+    actionLoading.value.moveOut = true
+    try {
+      logger.info('执行移出操作')
+    } finally {
+      actionLoading.value.moveOut = false
+    }
   }
 
   /**
@@ -137,8 +171,8 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
       try {
         await updateJobDuration(jobId, duration)
         logger.debug('更新预计时长成功', { jobId, duration })
-      } catch (error) {
-        logger.error('更新预计时长失败', error)
+      } catch {
+        // http.ts 拦截器已统一处理错误提示和日志记录
       }
     }
   }
@@ -155,8 +189,8 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
         deviceId: currentDeviceId.value,
         lockedCount: lockedMoldCodes.value.length
       })
-    } catch (error) {
-      logger.error('压机作业信息加载失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       modbusPressJobList.value = []
     }
   }
@@ -167,8 +201,8 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
       const res = await listModbusDevice()
       modbusDeviceList.value = res.data || []
       logger.debug('设备列表加载完成', { count: modbusDeviceList.value.length })
-    } catch (error) {
-      logger.error('设备列表加载失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       modbusDeviceList.value = []
     }
   }
@@ -180,8 +214,8 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
       // 并行获取压机作业信息和设备列表
       await Promise.all([fetchPressJobByIp(), fetchModbusDeviceList()])
       logger.info('作业数据加载完成')
-    } catch (error) {
-      logger.error('作业数据加载失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
     } finally {
       loading.value = false
     }
@@ -223,6 +257,7 @@ export const useDeviceJobStore = defineStore('deviceJob', () => {
     recentJobs,
     jobSelection,
     loading,
+    actionLoading,
     modbusPressJobList,
     modbusDeviceList,
     currentDeviceId,

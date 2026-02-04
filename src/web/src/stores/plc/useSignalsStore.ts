@@ -250,6 +250,60 @@ export const useSignalsStore = defineStore('signals', () => {
     }
   }
 
+  /**
+   * 读取单个信号值
+   * @param signalCode - 信号编码
+   * @returns 信号值，失败返回 null
+   */
+  async function readSingleSignal(
+    signalCode: string
+  ): Promise<number | boolean | string | null> {
+    const bridge = getPlcBridge()
+    if (!bridge) {
+      logger.warn('PlcBridge 未初始化，无法读取信号')
+      return null
+    }
+
+    try {
+      const value = await bridge.readBySignalCode(signalCode)
+      logger.info(`读取信号 ${signalCode} 成功`, { value })
+      return value
+    } catch (error) {
+      logger.error(`读取信号 ${signalCode} 失败`, error)
+      return null
+    }
+  }
+
+  /**
+   * 写入单个信号值
+   * @param signalCode - 信号编码
+   * @param value - 要写入的值
+   * @returns 是否写入成功
+   */
+  async function writeSingleSignal(
+    signalCode: string,
+    value: number | boolean | string
+  ): Promise<boolean> {
+    const bridge = getPlcBridge()
+    if (!bridge) {
+      logger.warn('PlcBridge 未初始化，无法写入信号')
+      return false
+    }
+
+    try {
+      const result = await bridge.writeBySignalCode(signalCode, value)
+      if (result) {
+        logger.info(`写入信号 ${signalCode} 成功`, { value })
+      } else {
+        logger.warn(`写入信号 ${signalCode} 返回 false`)
+      }
+      return result
+    } catch (error) {
+      logger.error(`写入信号 ${signalCode} 失败`, error)
+      return false
+    }
+  }
+
   return {
     // 状态
     signals,
@@ -269,5 +323,7 @@ export const useSignalsStore = defineStore('signals', () => {
     initListeners,
     findSignalCodeByName,
     sendMesCommunicationStatus,
+    readSingleSignal,
+    writeSingleSignal,
   }
 })

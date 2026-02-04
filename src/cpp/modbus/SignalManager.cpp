@@ -89,13 +89,14 @@ QVariant SignalManager::readSignalValue(const QString &signalCode)
     }
 
     // 根据寄存器类型选择读取方法
+    // 与老项目保持一致：线圈使用 registerAddress，保持寄存器使用 offsetValue
     QVariantList rawValues;
     if (signal.registerType == "1") {
-        // 线圈
+        // 线圈 - 使用 registerAddress
         rawValues = m_modbusManager->readCoils(signal.registerAddress, signal.registerCount);
     } else {
-        // 保持寄存器（默认）
-        rawValues = m_modbusManager->readHoldingRegisters(signal.registerAddress, signal.registerCount);
+        // 保持寄存器（默认）- 使用 offsetValue 作为地址
+        rawValues = m_modbusManager->readHoldingRegisters(signal.offsetValue, signal.registerCount);
     }
 
     if (rawValues.isEmpty()) {
@@ -121,7 +122,9 @@ QVariantMap SignalManager::readAllActiveSignals()
 {
     QList<ModbusSignal> activeSignals;
     for (const ModbusSignal &signal : m_signals) {
-        if (signal.isActive && signal.signalType == "read") {
+        // 读取所有活跃信号，不再限制 signalType
+        // write 类型信号虽然用于下发指令，但其当前值也需要在 UI 上显示
+        if (signal.isActive) {
             activeSignals.append(signal);
         }
     }
@@ -147,9 +150,11 @@ bool SignalManager::writeSignalValue(const QString &signalCode, const QVariant &
     }
 
     if (signal.registerType == "1") {
+        // 线圈 - 使用 registerAddress
         return m_modbusManager->writeCoils(signal.registerAddress, rawValues);
     }
-    return m_modbusManager->writeRegisters(signal.registerAddress, rawValues);
+    // 保持寄存器 - 使用 offsetValue
+    return m_modbusManager->writeRegisters(signal.offsetValue, rawValues);
 }
 
 QVariant SignalManager::convertFromRaw(const ModbusSignal &signal, const QVariantList &rawValues)
@@ -159,35 +164,56 @@ QVariant SignalManager::convertFromRaw(const ModbusSignal &signal, const QVarian
     }
 
     QString dataType = signal.dataType.toLower();
+    int registerCount = signal.registerCount;
 
     // 位类型
     if (dataType == "bit") {
         return rawValues.first().toBool();
     }
 
-    // 16位无符号整数
-    if (dataType == "word" || dataType == "uint16") {
-        int raw = rawValues.first().toInt();
-        double value = (raw * signal.scaleFactor) + signal.offsetValue;
-        return value;
+    // 与老项目保持一致：优先根据 registerCount 决定处理方式
+    // registerCount == 1: 单寄存器（word/uint16）
+    // registerCount == 2: 双寄存器（float）
+    // registerCount == 4: 四寄存器（double）
+
+    if (registerCount == 1) {
+        // 单寄存器：16位数据
+        int raw = rawValues.first().toInt() & 0xFFFF;  // 转为无符号
+        if (signal.scaleFactor > 0) {
+            // scaleFactor 表示小数位数，例如 scaleFactor=3 表示除以 1000
+            double value = raw / std::pow(10, signal.scaleFactor);
+            return value;
+        }
+        return raw;
     }
 
-    // 32位浮点数（2个寄存器）
-    if (dataType == "float" && rawValues.size() >= 2) {
-        quint16 high = static_cast<quint16>(rawValues[0].toUInt());
-        quint16 low = static_cast<quint16>(rawValues[1].toUInt());
+    if (registerCount == 2 && rawValues.size() >= 2) {
+        // 双寄存器：32位浮点数
+        // 与老项目保持一致：shortData[1] << 16 | shortData[0]
+        quint16 low = static_cast<quint16>(rawValues[0].toUInt());
+        quint16 high = static_cast<quint16>(rawValues[1].toUInt());
         quint32 combined = (static_cast<quint32>(high) << 16) | low;
         float floatVal;
         memcpy(&floatVal, &combined, sizeof(float));
         return static_cast<double>(floatVal);
     }
 
-    // 32位整数（2个寄存器）
-    if (dataType == "int32" && rawValues.size() >= 2) {
-        quint16 high = static_cast<quint16>(rawValues[0].toUInt());
-        quint16 low = static_cast<quint16>(rawValues[1].toUInt());
-        qint32 value = static_cast<qint32>((static_cast<quint32>(high) << 16) | low);
-        return value;
+    if (registerCount == 4 && rawValues.size() >= 4) {
+        // 四寄存器：64位数据
+        if (dataType == "double") {
+            qint64 longBits = (static_cast<qint64>(rawValues[0].toInt()) << 48) |
+                             (static_cast<qint64>(rawValues[1].toUInt() & 0xFFFF) << 32) |
+                             (static_cast<qint64>(rawValues[2].toUInt() & 0xFFFF) << 16) |
+                             (rawValues[3].toUInt() & 0xFFFF);
+            double doubleVal;
+            memcpy(&doubleVal, &longBits, sizeof(double));
+            return doubleVal;
+        }
+        // 64位长整数
+        return (static_cast<qint64>(rawValues[0].toInt()) << 48) |
+               (static_cast<qint64>(rawValues[1].toUInt() & 0xFFFF) << 32) |
+               (static_cast<qint64>(rawValues[2].toUInt() & 0xFFFF) << 16) |
+               (rawValues[3].toUInt() & 0xFFFF);
     }
 
     // 默认返回第一个值
@@ -206,20 +232,28 @@ QVariantList SignalManager::convertToRaw(const ModbusSignal &signal, const QVari
     }
 
     // 16位无符号整数
+    // 与读取逻辑保持一致：scaleFactor 表示小数位数
+    // 写入时需要乘以 10^scaleFactor 还原为原始值
     if (dataType == "word" || dataType == "uint16") {
         double val = value.toDouble();
-        int raw = static_cast<int>((val - signal.offsetValue) / signal.scaleFactor);
+        int raw;
+        if (signal.scaleFactor > 0) {
+            raw = static_cast<int>(val * std::pow(10, signal.scaleFactor));
+        } else {
+            raw = static_cast<int>(val);
+        }
         result.append(raw);
         return result;
     }
 
-    // 32位浮点数
+    // 32位浮点数 - Little Endian word order（低位字在前）
+    // 与读取保持一致：result[0] 是低位字，result[1] 是高位字
     if (dataType == "float") {
         float floatVal = static_cast<float>(value.toDouble());
         quint32 combined;
         memcpy(&combined, &floatVal, sizeof(float));
-        result.append(static_cast<int>(combined >> 16));
-        result.append(static_cast<int>(combined & 0xFFFF));
+        result.append(static_cast<int>(combined & 0xFFFF));  // 低位字先添加
+        result.append(static_cast<int>(combined >> 16));     // 高位字后添加
         return result;
     }
 

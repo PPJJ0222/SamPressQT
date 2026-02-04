@@ -53,14 +53,6 @@ export enum DeviceOperationStatus {
   ERROR = 'error' // 故障
 }
 
-/** 压机设备信息 */
-export interface PressDevice {
-  id: string | number
-  name: string // 如 "1号压机"
-  code: string // 设备编码
-  status: DeviceOperationStatus
-}
-
 /** 当前作业信息 */
 export interface CurrentJob {
   id: string | number
@@ -180,4 +172,28 @@ export interface PlineCraft {
   deviceType: string | null
   /** 工单类型 */
   tecOrderType: string | null
+}
+
+/**
+ * 字典选项（用于下拉选择和翻译显示）
+ * @description 对应后端 getAllUserForOptions 等接口返回的通用字典格式
+ */
+export interface DictOption {
+  /** 字典值（如 userName） */
+  dictValue: string
+  /** 字典标签（如 nickName） */
+  dictLabel: string
+}
+
+/**
+ * 标准工艺信息（用于翻译显示）
+ * @description 对应后端 MoldStandardCraft 实体
+ */
+export interface StandardCraft {
+  /** 工艺 ID */
+  id: string
+  /** 工艺编码 */
+  craftCode: string
+  /** 工艺名称 */
+  craftName: string
 }

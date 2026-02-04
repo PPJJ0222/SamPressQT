@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * @file 设备参数区域组件
- * @description 展示设备 PLC 信号参数的 4×4 网格布局，支持 10 秒定时轮询
+ * @description 展示设备 PLC 信号参数的 3×6 网格布局，支持 10 秒定时轮询
  * @module components/business/DeviceParamsSection
  */
 
@@ -103,7 +103,7 @@ onUnmounted(() => {
     <!-- 参数卡片网格 -->
     <div
       v-else
-      class="grid grid-cols-4 gap-3"
+      class="grid grid-cols-6 gap-3"
     >
       <ParamCard
         v-for="signal in displaySignals"

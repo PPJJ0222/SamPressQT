@@ -7,6 +7,7 @@
 import { logger } from '@/utils/logger'
 import { initWebChannel, isQtEnvironment } from './channel'
 import type { ModbusSignal, SignalValuesMap } from '@/types/plc'
+import type { LogFile } from '@/types/log'
 
 // Qt WebChannel 桥接类型定义
 export interface PlcBridge {
@@ -41,6 +42,12 @@ export interface PlcBridge {
   // ========== 初始化接口 ==========
   /** 前端登录成功后调用，传递 Token 并初始化设备配置 */
   initWithToken(token: string): void
+
+  // ========== 日志接口 ==========
+  /** 获取日志文件列表（最近 N 天） */
+  getLogFiles(days?: number): Promise<LogFile[]>
+  /** 读取指定日志文件内容 */
+  readLogFile(filePath: string): Promise<string>
 
   // ========== 信号 ==========
   signalValuesChanged: { connect: (callback: (values: SignalValuesMap) => void) => void }
@@ -118,5 +125,33 @@ function createMockBridge(): PlcBridge {
     startPolling: () => { polling = true },
     stopPolling: () => { polling = false },
     initWithToken: () => { logger.info('Mock: initWithToken called') },
+    getLogFiles: async () => {
+      // 模拟日志文件列表
+      const today = new Date()
+      const files: LogFile[] = []
+      for (let d = 0; d < 3; d++) {
+        const date = new Date(today)
+        date.setDate(date.getDate() - d)
+        const dateStr = date.toISOString().split('T')[0]
+        for (let h = 23; h >= 0; h--) {
+          files.push({
+            filename: `${dateStr}_${h.toString().padStart(2, '0')}.txt`,
+            date: dateStr,
+            hour: h,
+            path: `/mock/pocoPress/${dateStr}_${h.toString().padStart(2, '0')}.txt`
+          })
+        }
+      }
+      return files
+    },
+    readLogFile: async () => {
+      // 模拟日志内容
+      const mockLogs = [
+        { level: 'info', message: 'PLC 连接成功', timestamp: new Date().toISOString() },
+        { level: 'warn', message: 'Modbus 响应超时', timestamp: new Date().toISOString() },
+        { level: 'error', message: '模具解锁失败', timestamp: new Date().toISOString() },
+      ]
+      return mockLogs.map(log => JSON.stringify(log)).join('\n')
+    },
   }
 }

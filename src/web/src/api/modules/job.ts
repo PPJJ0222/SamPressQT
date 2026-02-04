@@ -79,6 +79,8 @@ export interface ModbusPressJob {
   status?: string
   /** 开始时间 */
   startTime?: string
+  /** 预计时长（小时） */
+  expectedDuration?: number
   /** 是否需要记录参数 */
   needParameterRecords?: boolean
 }

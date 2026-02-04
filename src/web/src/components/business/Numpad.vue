@@ -1,6 +1,9 @@
 <script setup lang="ts">
-// 数字键盘组件
-import { ref } from 'vue'
+/**
+ * @file 数字键盘组件
+ * @description 触屏友好的数字输入键盘，支持小数和负数输入
+ */
+import { ref, watch } from 'vue'
 
 interface Props {
   modelValue?: string
@@ -20,8 +23,15 @@ const emit = defineEmits<{
   close: []
 }>()
 
+/** 内部输入值 */
 const inputValue = ref(props.modelValue)
 
+/** 同步外部值变化（清空按钮联动） */
+watch(() => props.modelValue, (val) => {
+  inputValue.value = val
+})
+
+/** 数字键配置 */
 const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 const handleKey = (key: string) => {

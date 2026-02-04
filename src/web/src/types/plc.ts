@@ -58,3 +58,14 @@ export interface ModbusDevice {
   processorType: ProcessorType
   status: string
 }
+
+/** 数值显示格式 */
+export type ValueDisplayFormat = 'decimal' | 'hex'
+
+/** 信号调试表格行数据 */
+export interface SignalDebugRow extends ModbusSignal {
+  /** 当前信号值 */
+  finalVal: number | boolean | string | null
+  /** 是否正在读取 */
+  loading: boolean
+}

@@ -2,6 +2,11 @@
 #include "../modbus/ModbusManager.h"
 #include "../modbus/SignalManager.h"
 #include "../config/ConfigManager.h"
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
+#include <QDate>
+#include <QCoreApplication>
 
 /**
  * @file PlcBridge.cpp
@@ -22,6 +27,10 @@ PlcBridge::PlcBridge(ModbusManager *modbusManager,
     // 连接状态变化
     connect(m_modbusManager, &ModbusManager::connectionChanged,
             this, &PlcBridge::connectionChanged);
+
+    // 错误信号转发
+    connect(m_modbusManager, &ModbusManager::errorOccurred,
+            this, &PlcBridge::errorOccurred);
 
     // 信号配置加载完成
     connect(m_signalManager, &SignalManager::signalsLoaded,
@@ -57,11 +66,18 @@ QVariantList PlcBridge::getSignals()
     for (const ModbusSignal &signal : m_signalManager->allSignals()) {
         QVariantMap map;
         map["id"] = signal.id;
+        map["deviceId"] = signal.deviceId;
         map["signalCode"] = signal.signalCode;
         map["signalName"] = signal.signalName;
         map["signalType"] = signal.signalType;
+        map["registerType"] = signal.registerType;
+        map["registerAddress"] = signal.registerAddress;
         map["dataType"] = signal.dataType;
+        map["registerCount"] = signal.registerCount;
+        map["scaleFactor"] = signal.scaleFactor;
+        map["offsetValue"] = signal.offsetValue;
         map["unit"] = signal.unit;
+        map["plcAreaType"] = signal.plcAreaType;
         map["paramGroup"] = signal.paramGroup;
         map["isActive"] = signal.isActive;
         result.append(map);
@@ -146,4 +162,62 @@ void PlcBridge::initWithToken(const QString &token)
 {
     m_configManager->setAuthToken(token);
     m_configManager->fetchDeviceConfig(m_configManager->erpBaseUrl());
+}
+
+QVariantList PlcBridge::getLogFiles(int days)
+{
+    QVariantList result;
+
+    // 日志目录：与 LogManager 保持一致，使用相对路径 pocoPress
+    QString logDir = "pocoPress";
+    QDir dir(logDir);
+
+    if (!dir.exists()) {
+        return result;
+    }
+
+    // 计算日期范围
+    QDate today = QDate::currentDate();
+    QStringList dateFilters;
+    for (int i = 0; i < days; ++i) {
+        QDate date = today.addDays(-i);
+        dateFilters << date.toString("yyyy-MM-dd") + "_*.txt";
+    }
+
+    // 获取匹配的文件
+    dir.setNameFilters(dateFilters);
+    dir.setSorting(QDir::Name | QDir::Reversed);
+    QFileInfoList files = dir.entryInfoList(QDir::Files);
+
+    for (const QFileInfo &fileInfo : files) {
+        QVariantMap fileMap;
+        QString filename = fileInfo.fileName();
+
+        // 解析文件名：YYYY-MM-DD_HH.txt
+        QStringList parts = filename.left(filename.length() - 4).split("_");
+        if (parts.size() >= 2) {
+            fileMap["filename"] = filename;
+            fileMap["date"] = parts[0];
+            fileMap["hour"] = parts[1].toInt();
+            fileMap["path"] = fileInfo.absoluteFilePath();
+            result.append(fileMap);
+        }
+    }
+
+    return result;
+}
+
+QString PlcBridge::readLogFile(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString();
+    }
+
+    QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
+    QString content = in.readAll();
+    file.close();
+
+    return content;
 }

@@ -5,17 +5,27 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/dashboard'
+      redirect: '/manual'
     },
     {
-      path: '/dashboard',
-      name: 'Dashboard',
-      component: () => import('@/views/Dashboard.vue')
+      path: '/manual',
+      name: 'Manual',
+      component: () => import('@/views/Manual.vue')
     },
     {
       path: '/devices',
       name: 'Devices',
       component: () => import('@/views/Devices.vue')
+    },
+    {
+      path: '/analytics',
+      name: 'SignalDebug',
+      component: () => import('@/views/SignalDebug.vue')
+    },
+    {
+      path: '/logs',
+      name: 'Logs',
+      component: () => import('@/views/Logs.vue')
     }
   ]
 })

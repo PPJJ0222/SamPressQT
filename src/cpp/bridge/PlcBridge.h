@@ -66,6 +66,13 @@ public slots:
     /** @brief 停止数据轮询 */
     void stopPolling();
 
+    // ========== 日志接口 ==========
+    /** @brief 获取日志文件列表（最近 N 天） */
+    QVariantList getLogFiles(int days = 3);
+
+    /** @brief 读取指定日志文件内容 */
+    QString readLogFile(const QString &filePath);
+
 signals:
     void connectionChanged(bool connected);
     void dataReceived(const QVariantMap &data);

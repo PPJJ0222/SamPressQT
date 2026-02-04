@@ -15,9 +15,11 @@ import {
   getPlnListByDept2,
   getQtUserInfo,
   getQtUserList2,
-  getCraftByPlineIdAndDeviceType
+  getCraftByPlineIdAndDeviceType,
+  getAllUserForOptions,
+  getCraftList
 } from '@/api/modules/erp'
-import type { Team, Personnel, Process, Mold, ProductionLine, QtUserInfo, PlineCraft } from '@/types/device'
+import type { Team, Personnel, Process, Mold, ProductionLine, QtUserInfo, PlineCraft, DictOption, StandardCraft } from '@/types/device'
 
 export const useErpStore = defineStore('erp', () => {
   /** 班组列表 */
@@ -44,6 +46,11 @@ export const useErpStore = defineStore('erp', () => {
   /** 产线工艺列表（根据产线编码获取） */
   const craftList = ref<PlineCraft[]>([])
 
+  /** 所有用户列表（不依赖产线，用于翻译显示，格式为 dictValue/dictLabel） */
+  const allUsers = ref<DictOption[]>([])
+
+  /** 所有工艺列表（不依赖产线，用于翻译显示） */
+  const allCrafts = ref<StandardCraft[]>([])
   /** 数据加载状态 */
   const loading = ref(false)
 
@@ -66,7 +73,7 @@ export const useErpStore = defineStore('erp', () => {
       teams.value = res.data || []
       logger.debug('班组数据加载完成', { count: teams.value.length })
     } catch (error) {
-      logger.error('班组数据加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -78,7 +85,7 @@ export const useErpStore = defineStore('erp', () => {
       personnelList.value = res.data || []
       logger.debug('人员数据加载完成', { count: personnelList.value.length })
     } catch (error) {
-      logger.error('人员数据加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -90,7 +97,7 @@ export const useErpStore = defineStore('erp', () => {
       processes.value = res.data || []
       logger.debug('工艺数据加载完成', { count: processes.value.length })
     } catch (error) {
-      logger.error('工艺数据加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -102,7 +109,7 @@ export const useErpStore = defineStore('erp', () => {
       molds.value = res.data || []
       logger.debug('模具数据加载完成', { count: molds.value.length })
     } catch (error) {
-      logger.error('模具数据加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -114,7 +121,7 @@ export const useErpStore = defineStore('erp', () => {
       productionLines.value = res.data || []
       logger.debug('产线数据加载完成', { count: productionLines.value.length })
     } catch (error) {
-      logger.error('产线数据加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -127,7 +134,7 @@ export const useErpStore = defineStore('erp', () => {
       logger.debug('当前用户信息加载完成', { plineCode: currentUserInfo.value?.plineCode })
       return currentUserInfo.value?.plineCode || null
     } catch (error) {
-      logger.error('当前用户信息加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -157,7 +164,37 @@ export const useErpStore = defineStore('erp', () => {
         craftsCount: craftList.value.length
       })
     } catch (error) {
-      logger.error('产线关联数据加载失败', error)
+      // http.ts 拦截器已统一处理错误提示和日志记录
+      throw error
+    }
+  }
+
+  /**
+   * 加载所有用户列表
+   * @description 不依赖产线，用于翻译显示
+   */
+  async function fetchAllUsers() {
+    try {
+      const res = await getAllUserForOptions()
+      allUsers.value = res.data || []
+      logger.debug('所有用户数据加载完成', { count: allUsers.value.length })
+    } catch (error) {
+      // http.ts 拦截器已统一处理错误提示和日志记录
+      throw error
+    }
+  }
+
+  /**
+   * 加载所有工艺列表
+   * @description 不依赖产线，用于翻译显示
+   */
+  async function fetchAllCrafts() {
+    try {
+      const res = await getCraftList()
+      allCrafts.value = res.data || []
+      logger.debug('所有工艺数据加载完成', { count: allCrafts.value.length })
+    } catch (error) {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       throw error
     }
   }
@@ -166,10 +203,12 @@ export const useErpStore = defineStore('erp', () => {
   async function initData() {
     loading.value = true
     try {
-      // 并行加载产线列表和当前用户信息
+      // 并行加载产线列表、当前用户信息、所有用户列表和所有工艺列表
       const [, plineCode] = await Promise.all([
         fetchProductionLines(),
-        fetchCurrentUserInfo()
+        fetchCurrentUserInfo(),
+        fetchAllUsers(),
+        fetchAllCrafts()
       ])
 
       // 根据用户的产线编码加载关联数据
@@ -178,8 +217,8 @@ export const useErpStore = defineStore('erp', () => {
       }
 
       logger.info('ERP 基础数据加载完成')
-    } catch (error) {
-      logger.error('ERP 数据加载失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
     } finally {
       loading.value = false
     }
@@ -194,6 +233,8 @@ export const useErpStore = defineStore('erp', () => {
     currentUserInfo,
     plineUsers,
     craftList,
+    allUsers,
+    allCrafts,
     loading,
     getPersonnelByTeam,
     fetchTeams,
@@ -202,6 +243,8 @@ export const useErpStore = defineStore('erp', () => {
     fetchMolds,
     fetchProductionLines,
     fetchCurrentUserInfo,
+    fetchAllUsers,
+    fetchAllCrafts,
     getQtUsers,
     initData
   }

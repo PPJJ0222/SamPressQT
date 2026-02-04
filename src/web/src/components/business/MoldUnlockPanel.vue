@@ -4,12 +4,15 @@
  * @description 显示已锁定的模具列表，支持选择并解锁
  * @module components/business/MoldUnlockPanel
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useMoldStore } from '@/stores/mold/useMoldStore'
 import { useDeviceJobStore } from '@/stores/device/useDeviceJobStore'
+import { useErpStore } from '@/stores/erp/useErpStore'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import type { LockedMoldInfo } from '@/types/mold'
 import { logger } from '@/utils/logger'
+import { getWorkTimeTypeLabel } from '@/constants/plc'
 
 interface Props {
   /** 设备 ID */
@@ -25,9 +28,14 @@ const emit = defineEmits<{
 
 const moldStore = useMoldStore()
 const deviceJobStore = useDeviceJobStore()
+const erpStore = useErpStore()
 
 const { lockedMolds, selectedUnlockMold, loading } = storeToRefs(moldStore)
 const { jobSelection } = storeToRefs(deviceJobStore)
+const { craftList, allUsers, allCrafts } = storeToRefs(erpStore)
+
+/** 是否显示确认模态框 */
+const showConfirmModal = ref(false)
 
 /** 当前操作员用户名 */
 const currentUserName = computed(() => {
@@ -41,18 +49,58 @@ const hasSelection = computed(() => selectedUnlockMold.value !== null)
 /** 状态提示文本 */
 const statusText = computed(() => `已锁定 ${lockedMolds.value.length} 套模具`)
 
+/**
+ * 根据工艺编码获取工艺名称
+ * @param craftCode - 工艺编码
+ * @returns 工艺名称
+ */
+const getCraftName = (craftCode: string | undefined): string => {
+  if (!craftCode) return '-'
+  // 优先从全局工艺列表查找，确保能翻译所有工艺
+  const craft = allCrafts.value.find((c) => c.craftCode === craftCode)
+  if (craft?.craftName) return craft.craftName
+  // 兜底：从产线工艺列表查找
+  const plineCraft = craftList.value.find((c) => c.craftCode === craftCode)
+  return plineCraft?.craftName || craftCode
+}
+
+/**
+ * 根据用户名获取用户昵称
+ * @param userName - 用户名（operator 字段）
+ * @returns 用户昵称
+ */
+const getOperatorName = (userName: string | undefined): string => {
+  if (!userName) return '-'
+  const user = allUsers.value.find((u) => u.dictValue === userName)
+  return user?.dictLabel || userName
+}
+
 /** 处理模具选择 */
 const handleSelect = (mold: LockedMoldInfo) => {
   moldStore.selectUnlockMold(mold)
 }
 
-/** 确认解锁 */
-const handleConfirm = async () => {
+/** 打开确认模态框 */
+const handleUnlockClick = () => {
   if (!selectedUnlockMold.value) {
     logger.warn('请先选择要解锁的模具')
     return
   }
+  showConfirmModal.value = true
+}
 
+/** 取消确认 */
+const handleCancelConfirm = () => {
+  showConfirmModal.value = false
+}
+
+/** 确认解锁 */
+const handleConfirm = async () => {
+  if (!selectedUnlockMold.value) {
+    return
+  }
+
+  showConfirmModal.value = false
   const success = await moldStore.cancelLock(
     selectedUnlockMold.value.mouldCode,
     currentUserName.value,
@@ -108,10 +156,10 @@ const handleClose = () => {
           <div class="col-mold-code font-medium">{{ mold.mouldCode }}</div>
           <div class="col-stages">{{ mold.stages || '-' }}</div>
           <div class="col-order">{{ mold.makeOrderNumber || '-' }}</div>
-          <div class="col-craft">{{ mold.craftName || '-' }}</div>
-          <div class="col-time-type">{{ mold.workTimeType || '-' }}</div>
+          <div class="col-craft">{{ getCraftName(mold.craftCode) }}</div>
+          <div class="col-time-type">{{ getWorkTimeTypeLabel(mold.mouldMakeOrderType) }}</div>
           <div class="col-start-time">{{ mold.startTime || '-' }}</div>
-          <div class="col-operator">{{ mold.operator || '-' }}</div>
+          <div class="col-operator">{{ getOperatorName(mold.operator) }}</div>
         </div>
 
         <!-- 空状态 -->
@@ -126,9 +174,21 @@ const handleClose = () => {
       <button
         class="btn btn--primary"
         :disabled="!hasSelection || loading"
-        @click="handleConfirm"
+        @click="handleUnlockClick"
       >
-        确认解锁
+        <!-- Loading 图标 -->
+        <svg
+          v-if="loading"
+          class="w-4 h-4 animate-spin"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round" />
+        </svg>
+        <span>确认解锁</span>
       </button>
       <button
         class="btn btn--secondary"
@@ -137,6 +197,19 @@ const handleClose = () => {
         关闭
       </button>
     </div>
+
+    <!-- 二次确认模态框 -->
+    <ConfirmModal
+      :visible="showConfirmModal"
+      title="确认解锁"
+      :message="`确定要解锁模具 ${selectedUnlockMold?.mouldCode || ''} 吗？`"
+      confirm-text="确认解锁"
+      cancel-text="取消"
+      confirm-variant="destructive"
+      :loading="loading"
+      @confirm="handleConfirm"
+      @cancel="handleCancelConfirm"
+    />
   </div>
 </template>
 
@@ -207,6 +280,7 @@ const handleClose = () => {
   @apply transition-all duration-150;
   @apply active:opacity-80 active:scale-[0.98];
   @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply flex items-center justify-center gap-2;
 }
 
 .btn--primary {
@@ -231,11 +305,11 @@ const handleClose = () => {
 }
 
 .col-order {
-  @apply flex-1 min-w-28;
+  @apply w-28 shrink-0;
 }
 
 .col-craft {
-  @apply w-24 shrink-0;
+  @apply flex-1 min-w-24;
 }
 
 .col-time-type {
@@ -243,7 +317,7 @@ const handleClose = () => {
 }
 
 .col-start-time {
-  @apply w-36 shrink-0;
+  @apply w-40 shrink-0;
 }
 
 .col-operator {

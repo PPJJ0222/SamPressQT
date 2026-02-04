@@ -10,6 +10,7 @@ import { storeToRefs } from 'pinia'
 import { Status } from '@/components/ui'
 import { Numpad } from '@/components/business'
 import { useDeviceJobStore } from '@/stores/device/useDeviceJobStore'
+import { logger } from '@/utils/logger'
 import type { ModbusPressJob } from '@/api/modules/job'
 
 const emit = defineEmits<{
@@ -38,7 +39,8 @@ const getDeviceName = (deviceId: string) => {
 const numpadState = ref({
   visible: false,
   targetDeviceId: null as string | null,
-  currentValue: ''
+  currentValue: '',
+  anchorRect: null as DOMRect | null
 })
 
 /** 获取状态信息 */
@@ -46,12 +48,20 @@ const getStatusInfo = (status: string | undefined) => {
   return pressJobStatusMap[status || '0'] || pressJobStatusMap['0']
 }
 
+/** 判断作业是否在加工中 */
+const isProcessing = (job: ModbusPressJob) => job.status === '1'
+
 /** 点击预计时长输入框 */
-const onDurationClick = (job: ModbusPressJob) => {
+const onDurationClick = (job: ModbusPressJob, event: MouseEvent) => {
+  // 加工中状态禁止输入
+  if (isProcessing(job)) return
+
   numpadState.value = {
     visible: true,
     targetDeviceId: job.deviceId,
-    currentValue: ''
+    currentValue: job.expectedDuration?.toString() || '',
+    // 记录点击位置用于定位数字键盘
+    anchorRect: (event.currentTarget as HTMLElement).getBoundingClientRect()
   }
 }
 
@@ -61,7 +71,7 @@ const onNumpadConfirm = (value: string) => {
     const duration = parseFloat(value)
     if (!isNaN(duration) && duration > 0) {
       // TODO: 实现预计时长更新逻辑
-      console.log('更新预计时长:', numpadState.value.targetDeviceId, duration)
+      logger.debug('更新预计时长:', numpadState.value.targetDeviceId, duration)
     }
   }
   numpadState.value.visible = false
@@ -113,12 +123,16 @@ const onMoldCodeClick = (mouldCode: string) => {
         </button>
         <span v-else class="text-sm text-(--text-tertiary)">未锁定</span>
       </div>
-      <div class="w-35">
+      <div class="w-35 relative">
         <button
-          class="duration-input"
-          @click="onDurationClick(job)"
+          :class="[
+            'duration-input',
+            isProcessing(job) && 'duration-input--disabled'
+          ]"
+          :disabled="isProcessing(job)"
+          @click="onDurationClick(job, $event)"
         >
-          点击输入
+          {{ job.expectedDuration ? job.expectedDuration : '点击输入' }}
         </button>
       </div>
       <div class="w-40 text-sm text-(--text-primary)">
@@ -138,12 +152,15 @@ const onMoldCodeClick = (mouldCode: string) => {
     </div>
   </div>
 
-  <!-- 数字键盘弹窗 -->
+  <!-- 数字键盘弹窗（absolute 定位，与模具号输入一致） -->
   <Teleport to="body">
     <div
-      v-if="numpadState.visible"
-      class="numpad-overlay"
-      @click.self="onNumpadClose"
+      v-if="numpadState.visible && numpadState.anchorRect"
+      class="numpad-container"
+      :style="{
+        top: `${numpadState.anchorRect.bottom + 8}px`,
+        left: `${numpadState.anchorRect.left}px`
+      }"
     >
       <Numpad
         v-model="numpadState.currentValue"
@@ -190,11 +207,13 @@ const onMoldCodeClick = (mouldCode: string) => {
   @apply active:opacity-80 active:scale-[0.98] transition-all duration-150;
 }
 
-.numpad-overlay {
-  @apply fixed inset-0 z-50;
-  @apply flex items-center justify-center;
-  @apply bg-black/30;
-  backdrop-filter: blur(4px);
+.duration-input--disabled {
+  @apply opacity-50 cursor-not-allowed;
+  @apply active:opacity-50 active:scale-100;
+}
+
+.numpad-container {
+  @apply fixed z-50;
 }
 
 .mold-code-btn {

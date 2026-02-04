@@ -20,6 +20,7 @@ const plcStore = usePlcStore()
 const moldStore = useMoldStore()
 
 const { operationStatus, statusLabel } = storeToRefs(deviceJobStore)
+const { actionLoading } = storeToRefs(deviceJobStore)
 const { connected } = storeToRefs(plcStore)
 const { panelVisible } = storeToRefs(moldStore)
 
@@ -128,7 +129,7 @@ const handleMoveOut = () => deviceJobStore.moveOut()
     <div ref="buttonRowRef" class="flex items-center justify-between">
       <!-- 操作按钮组 -->
       <div class="flex items-center gap-3">
-        <Button variant="primary" :disabled="btnDisabled.connect" @click="handleConnect">
+        <Button variant="primary" :disabled="btnDisabled.connect" :loading="actionLoading.connect" @click="handleConnect">
           <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
           </svg>
@@ -142,28 +143,28 @@ const handleMoveOut = () => deviceJobStore.moveOut()
           <span>锁定模具</span>
         </Button>
 
-        <Button variant="primary" :disabled="btnDisabled.start" @click="handleStart">
+        <Button variant="primary" :disabled="btnDisabled.start" :loading="actionLoading.start" @click="handleStart">
           <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
           <span>开始加工</span>
         </Button>
 
-        <Button variant="primary" :disabled="btnDisabled.complete" @click="handleComplete">
+        <Button variant="primary" :disabled="btnDisabled.complete" :loading="actionLoading.complete" @click="handleComplete">
           <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
           <span>完成加工</span>
         </Button>
 
-        <Button variant="secondary" :disabled="btnDisabled.moveIn" @click="handleMoveIn">
+        <Button variant="secondary" :disabled="btnDisabled.moveIn" :loading="actionLoading.moveIn" @click="handleMoveIn">
           <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
           </svg>
           <span>移入</span>
         </Button>
 
-        <Button variant="secondary" :disabled="btnDisabled.moveOut" @click="handleMoveOut">
+        <Button variant="secondary" :disabled="btnDisabled.moveOut" :loading="actionLoading.moveOut" @click="handleMoveOut">
           <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
           </svg>

@@ -78,8 +78,8 @@ export const useMoldStore = defineStore('mold', () => {
       // API 返回 { code: string }[] 格式，提取 code 字段
       moldCodeOptions.value = (res.data || []).map((item) => item.code)
       logger.debug('模具号搜索完成', { keyword, count: moldCodeOptions.value.length })
-    } catch (error) {
-      logger.error('模具号搜索失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       moldCodeOptions.value = []
     } finally {
       searchLoading.value = false
@@ -110,8 +110,8 @@ export const useMoldStore = defineStore('mold', () => {
       })
       searchResults.value = res.data || []
       logger.debug('模具信息查询完成', { mouldCode, count: searchResults.value.length })
-    } catch (error) {
-      logger.error('模具信息查询失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       searchResults.value = []
     } finally {
       loading.value = false
@@ -219,9 +219,9 @@ export const useMoldStore = defineStore('mold', () => {
       clearSelection()
 
       return { success: true, message: '锁定完成!' }
-    } catch (error) {
-      logger.error('模具锁定失败', error)
-      // 返回空消息，因为 http.ts 拦截器已经弹出了错误提示
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
+      // 返回空消息，因为拦截器已经弹出了错误提示
       return { success: false, message: '' }
     } finally {
       loading.value = false
@@ -244,8 +244,8 @@ export const useMoldStore = defineStore('mold', () => {
       const res = await selectLockedMouldInfo({ deviceId })
       lockedMolds.value = (res.data || []) as unknown as LockedMoldInfo[]
       logger.debug('已锁定模具列表加载完成', { count: lockedMolds.value.length })
-    } catch (error) {
-      logger.error('已锁定模具列表加载失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       lockedMolds.value = []
     } finally {
       loading.value = false
@@ -296,8 +296,8 @@ export const useMoldStore = defineStore('mold', () => {
       selectedUnlockMold.value = null
 
       return true
-    } catch (error) {
-      logger.error('模具解锁失败', error)
+    } catch {
+      // http.ts 拦截器已统一处理错误提示和日志记录
       return false
     } finally {
       loading.value = false

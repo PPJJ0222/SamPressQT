@@ -31,8 +31,8 @@ function formatValue(val: number | string | boolean | undefined): string {
   if (val === undefined || val === null) return '--'
   if (typeof val === 'boolean') return val ? '是' : '否'
   if (typeof val === 'number') {
-    // 保留两位小数，去除末尾零
-    return Number.isInteger(val) ? String(val) : val.toFixed(2).replace(/\.?0+$/, '')
+    // 保留四位小数，去除末尾零（与信号调试页保持一致）
+    return Number.isInteger(val) ? String(val) : val.toFixed(4).replace(/\.?0+$/, '')
   }
   return String(val)
 }

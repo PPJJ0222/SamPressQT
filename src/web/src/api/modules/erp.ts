@@ -6,7 +6,7 @@
 
 import request from '../http'
 import type { ApiResponse } from '../http'
-import type { Team, Personnel, Process, Mold, ProductionLine, QtUserInfo, PlineCraft } from '@/types/device'
+import type { Team, Personnel, Process, Mold, ProductionLine, QtUserInfo, PlineCraft, DictOption, StandardCraft } from '@/types/device'
 
 /**
  * 获取班组列表
@@ -99,6 +99,30 @@ export function getQtUserList2(plineCode: string): Promise<ApiResponse<QtUserInf
 export function getCraftByPlineIdAndDeviceType(plineCode: string): Promise<ApiResponse<PlineCraft[]>> {
   return request({
     url: `/samMesPlineCraft/samMesPlineCraftController/getCraftByPlineIdAndDeviceType/${plineCode}/0`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取所有用户列表（用于下拉选择）
+ * @description 不依赖产线，获取系统所有用户，返回 dictValue/dictLabel 格式
+ * @returns 字典选项数组
+ */
+export function getAllUserForOptions(): Promise<ApiResponse<DictOption[]>> {
+  return request({
+    url: '/system/user/getAllUserForOptions',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取所有工艺列表（用于翻译显示）
+ * @description 不依赖产线，获取系统所有工艺
+ * @returns 标准工艺数组
+ */
+export function getCraftList(): Promise<ApiResponse<StandardCraft[]>> {
+  return request({
+    url: '/moldStandardCraft/moldStandardCraftController/getCraftList',
     method: 'get'
   })
 }

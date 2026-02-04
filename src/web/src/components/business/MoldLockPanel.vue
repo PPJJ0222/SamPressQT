@@ -3,10 +3,11 @@
  * @file 模具锁定面板组件
  * @description 模具锁定功能的容器组件，整合搜索、列表和操作按钮
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import MoldSearchSelect from './MoldSearchSelect.vue'
 import MoldLockTable from './MoldLockTable.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useMoldStore } from '@/stores/mold/useMoldStore'
 import { useErpStore } from '@/stores/erp/useErpStore'
 import { useDeviceJobStore } from '@/stores/device/useDeviceJobStore'
@@ -45,6 +46,9 @@ const {
 } = storeToRefs(moldStore)
 
 const { jobSelection, lockedMoldCodes } = storeToRefs(deviceJobStore)
+
+/** 是否显示确认模态框 */
+const showConfirmModal = ref(false)
 
 /** 工艺选项 */
 const craftOptions = computed(() => erpStore.craftList)
@@ -91,8 +95,19 @@ const handleCraftChange = (craftCode: string, craftName: string) => {
   moldStore.updateSelectedCraft(craftCode, craftName)
 }
 
+/** 打开确认模态框 */
+const handleLockClick = () => {
+  showConfirmModal.value = true
+}
+
+/** 取消确认 */
+const handleCancelConfirm = () => {
+  showConfirmModal.value = false
+}
+
 /** 确认锁定 */
 const handleConfirm = async () => {
+  showConfirmModal.value = false
   const result = await moldStore.confirmLock(props.userName, props.deviceId)
 
   if (result.success) {
@@ -131,11 +146,23 @@ const handleReset = () => {
       />
       <!-- 搜索按钮 -->
       <button
-        class="h-12 px-6 rounded-xl bg-(--bg-surface) border border-(--border-subtle) font-primary text-sm text-(--text-primary) touch-target touch-interactive disabled:opacity-50"
+        class="h-12 px-6 rounded-xl bg-(--bg-surface) border border-(--border-subtle) font-primary text-sm text-(--text-primary) touch-target touch-interactive disabled:opacity-50 flex items-center gap-2"
         :disabled="!searchKeyword || loading"
         @click="handleMoldCodeSelect(searchKeyword)"
       >
-        搜索
+        <!-- Loading 图标 -->
+        <svg
+          v-if="loading"
+          class="w-4 h-4 animate-spin"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round" />
+        </svg>
+        <span>搜索</span>
       </button>
       <!-- 重置按钮 -->
       <button
@@ -146,11 +173,23 @@ const handleReset = () => {
       </button>
       <!-- 确认锁定按钮 -->
       <button
-        class="h-12 px-6 rounded-xl gradient-primary font-primary text-sm font-medium text-white touch-target touch-interactive disabled:opacity-50"
+        class="h-12 px-6 rounded-xl gradient-primary font-primary text-sm font-medium text-white touch-target touch-interactive disabled:opacity-50 flex items-center gap-2"
         :disabled="!selectedMold || !canLockMore || loading"
-        @click="handleConfirm"
+        @click="handleLockClick"
       >
-        确认锁定
+        <!-- Loading 图标 -->
+        <svg
+          v-if="loading"
+          class="w-4 h-4 animate-spin"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
+          <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round" />
+        </svg>
+        <span>确认锁定</span>
       </button>
       <!-- 关闭按钮 -->
       <button
@@ -169,6 +208,18 @@ const handleReset = () => {
       :loading="loading"
       @select="handleMoldSelect"
       @craft-change="handleCraftChange"
+    />
+
+    <!-- 二次确认模态框 -->
+    <ConfirmModal
+      :visible="showConfirmModal"
+      title="确认锁定"
+      :message="`确定要锁定模具 ${selectedMold?.mouldCode || ''} 吗？`"
+      confirm-text="确认锁定"
+      cancel-text="取消"
+      :loading="loading"
+      @confirm="handleConfirm"
+      @cancel="handleCancelConfirm"
     />
   </div>
 </template>

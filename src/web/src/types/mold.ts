@@ -90,13 +90,13 @@ export interface LockedMoldInfo {
   stages: string
   /** 工艺编码 */
   craftCode: string
-  /** 工艺名称 */
-  craftName: string
-  /** 工时类型 */
-  workTimeType?: string
+  /** 工艺名称（可能为空，需要通过 craftCode 从工艺列表查找） */
+  craftName?: string
+  /** 工时类型编码（需要字典翻译：0=正常工时, 1=加班工时） */
+  mouldMakeOrderType?: string
   /** 开始时间 */
   startTime?: string
-  /** 作业员 */
+  /** 作业员用户名（需要从用户列表查找昵称） */
   operator?: string
   /** 锁定时间 */
   lockTime?: string
